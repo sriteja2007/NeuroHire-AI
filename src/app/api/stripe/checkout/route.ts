@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     const { planId } = await req.json(); // e.g. price_12345
 
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const checkoutSession = await getStripe().checkout.sessions.create({
       success_url: `${process.env.NEXTAUTH_URL}/dashboard/settings?success=true`,
       cancel_url: `${process.env.NEXTAUTH_URL}/dashboard/settings?canceled=true`,
       payment_method_types: ["card"],
