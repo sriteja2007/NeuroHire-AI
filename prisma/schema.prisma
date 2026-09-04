@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Role: ADMIN, RECRUITER, CANDIDATE
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("CANDIDATE")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id])
+  
+  candidateProfile Candidate?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Company {
+  id            String    @id @default(cuid())
+  name          String
+  logo          String?
+  website       String?
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  users         User[]
+  jobs          Job[]
+  subscription  Subscription?
+}
+
+model Job {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  requirements  String
+  location      String?
+  salary        String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications  Application[]
+}
+
+model Candidate {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline      String?
+  bio           String?
+  skills        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  resumes       Resume[]
+  applications  Application[]
+}
+
+model Resume {
+  id            String    @id @default(cuid())
+  candidateId   String
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  fileUrl       String
+  fileName      String
+  parsedData    String?     // Stores OpenAI parsed structured data as stringified JSON
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  applications  Application[]
+}
+
+model Application {
+  id            String    @id @default(cuid())
+  jobId         String
+  job           Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  resumeId      String?
+  resume        Resume?   @relation(fields: [resumeId], references: [id])
+  
+  status        String    @default("PENDING") // PENDING, REVIEWING, INTERVIEW, REJECTED, HIRED
+  matchScore    Float?    // AI Match score
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  interviews    Interview[]
+}
+
+model Interview {
+  id            String    @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  status        String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  score         Float?
+  feedback      String?
+  transcript    String?
+  scheduledAt   DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  companyId            String   @unique
+  company              Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  plan                 String   @default("FREE")
+  status               String   @default("INCOMPLETE")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// NextAuth Required Models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
