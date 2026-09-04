@@ -114,9 +114,11 @@ export default async function CandidatesPage() {
                   </td>
                   <td className="p-4 align-middle">{new Date(app.createdAt).toLocaleDateString()}</td>
                   <td className="p-4 align-middle text-right">
-                    <Button variant="ghost" size="sm" onClick={() => window.location.href=`/dashboard/candidates/${app.id}`}>
-                      <FileText className="h-4 w-4 mr-2" /> View Profile
-                    </Button>
+                    <Link href={`/dashboard/candidates/${app.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <FileText className="h-4 w-4 mr-2" /> View Profile
+                      </Button>
+                    </Link>
                   </td>
                 </tr>
               ))

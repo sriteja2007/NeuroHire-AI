@@ -20,9 +20,9 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
   }
 
-  const session = event.data.object as Stripe.Checkout.Session;
-
   if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    
     const subscription = (await getStripe().subscriptions.retrieve(
       session.subscription as string
     )) as any;
@@ -52,19 +52,23 @@ export async function POST(req: Request) {
   }
 
   if (event.type === "invoice.payment_succeeded") {
-    const subscription = (await getStripe().subscriptions.retrieve(
-      session.subscription as string
-    )) as any;
+    const invoice = event.data.object as any;
+    
+    if (invoice.subscription) {
+      const subscription = (await getStripe().subscriptions.retrieve(
+        invoice.subscription as string
+      )) as any;
 
-    await prisma.subscription.update({
-      where: {
-        stripeSubscriptionId: subscription.id,
-      },
-      data: {
-        status: subscription.status,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      },
-    });
+      await prisma.subscription.update({
+        where: {
+          stripeSubscriptionId: subscription.id,
+        },
+        data: {
+          status: subscription.status,
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        },
+      });
+    }
   }
 
   return new NextResponse(null, { status: 200 });

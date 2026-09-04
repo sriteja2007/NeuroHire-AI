@@ -14,12 +14,12 @@ export default function Home() {
             <span className="font-bold text-xl tracking-tight">NeuroHire AI</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => window.location.href='/login'}>
-              Sign In
-            </Button>
-            <Button onClick={() => window.location.href='/login'}>
-              Get Started
-            </Button>
+            <Link href="/login" className="hidden sm:inline-flex">
+              <Button variant="ghost">Sign In</Button>
+            </Link>
+            <Link href="/login">
+              <Button>Get Started</Button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -33,9 +33,11 @@ export default function Home() {
             NeuroHire automates your recruitment process. From intelligent resume parsing to AI-driven candidate interviews and rankings. Find the perfect match in seconds, not weeks.
           </p>
           <div className="flex items-center justify-center gap-4 pt-4">
-            <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-1" onClick={() => window.location.href='/login'}>
-              Start Hiring Now <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link href="/login">
+              <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-1">
+                Start Hiring Now <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
 

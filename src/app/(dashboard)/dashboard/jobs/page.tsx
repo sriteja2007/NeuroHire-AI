@@ -48,9 +48,11 @@ export default async function JobsPage() {
             Manage your open positions and track candidates.
           </p>
         </div>
-        <Button onClick={() => window.location.href='/dashboard/jobs/new'}>
-          <Plus className="mr-2 h-4 w-4" /> Create Job
-        </Button>
+        <Link href="/dashboard/jobs/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" /> Create Job
+          </Button>
+        </Link>
       </div>
 
       <div className="border rounded-xl bg-card">
@@ -97,12 +99,12 @@ export default async function JobsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => window.location.href=`/dashboard/jobs/${job.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Candidates
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => window.location.href=`/dashboard/jobs/${job.id}/edit`}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit Job
-                          </DropdownMenuItem>
+                          <Link href={`/dashboard/jobs/${job.id}`}>
+                            <DropdownMenuItem>View Details</DropdownMenuItem>
+                          </Link>
+                          <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                            <DropdownMenuItem>Edit Job</DropdownMenuItem>
+                          </Link>
                           <DropdownMenuItem className="text-destructive focus:text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete Job
                           </DropdownMenuItem>
