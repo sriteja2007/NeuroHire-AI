@@ -17,13 +17,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          console.log("Login failed: Missing email or password");
+          return null;
+        }
         
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
 
-        if (!user || !user.password) return null;
+        if (!user) {
+          console.log(`Login failed: User ${credentials.email} not found`);
+          return null;
+        }
+        
+        if (!user.password) {
+          console.log(`Login failed: User ${credentials.email} has no password set (OAuth only?)`);
+          return null;
+        }
 
         const passwordsMatch = await bcrypt.compare(
           credentials.password as string,
@@ -31,9 +42,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (passwordsMatch) {
+          console.log(`Login successful for ${credentials.email}`);
           return user;
+        } else {
+          console.log(`Login failed: Invalid password for ${credentials.email}`);
+          return null;
         }
-        return null;
       },
     }),
   ],
