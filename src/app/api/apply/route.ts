@@ -5,6 +5,10 @@ import { parseResumeWithAI, calculateMatchScore } from "@/services/ai";
 
 export async function POST(req: NextServerRequest) {
   try {
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+      return NextResponse.json({ error: "Content-Type must be multipart/form-data" }, { status: 400 });
+    }
     const formData = await req.formData();
     const jobId = formData.get("jobId") as string;
     const name = formData.get("name") as string;
