@@ -8,14 +8,43 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { editJob } from "@/app/actions/job";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { Job } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
+import { improveJobDescription } from "@/app/actions/generator";
 
 export function EditJobForm({ job }: { job: Job }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isActive, setIsActive] = useState(job.isActive);
+  const [description, setDescription] = useState(job.description);
+  const [requirements, setRequirements] = useState(job.requirements);
+  const [improvingAi, setImprovingAi] = useState(false);
+
+  async function handleImproveWithAi() {
+    setImprovingAi(true);
+    try {
+      const res = await improveJobDescription(description, requirements);
+      if (res.success) {
+        // The AI might return it all together, but let's just set it to description for now,
+        // or split it if it has ### Requirements.
+        const fullText = res.text;
+        const reqSplit = fullText.split(/###\s*(Requirements|Key Responsibilities)/i);
+        if (reqSplit.length > 2) {
+          setDescription(reqSplit[0].trim());
+          setRequirements("### " + reqSplit[1] + reqSplit[2]);
+        } else {
+          setDescription(fullText);
+          toast.info("AI returned a combined text. Please review.");
+        }
+        toast.success("Job description improved!");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to improve text.");
+    } finally {
+      setImprovingAi(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,30 +119,49 @@ export function EditJobForm({ job }: { job: Job }) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Job Description <span className="text-destructive">*</span></Label>
-              <textarea 
-                id="description" 
-                name="description" 
-                rows={5}
-                defaultValue={job.description}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Describe the role and responsibilities..." 
-                required 
-              />
-            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Job Post Content</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleImproveWithAi}
+                  disabled={improvingAi || !description || !requirements}
+                  className="bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                >
+                  {improvingAi ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  ✨ Improve with AI
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Job Description <span className="text-destructive">*</span></Label>
+                <textarea 
+                  id="description" 
+                  name="description" 
+                  rows={5}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Describe the role and responsibilities..." 
+                  required 
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="requirements">Requirements <span className="text-destructive">*</span></Label>
-              <textarea 
-                id="requirements" 
-                name="requirements" 
-                rows={5}
-                defaultValue={job.requirements}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="List the skills, experience, and requirements..." 
-                required 
-              />
+              <div className="space-y-2">
+                <Label htmlFor="requirements">Requirements <span className="text-destructive">*</span></Label>
+                <textarea 
+                  id="requirements" 
+                  name="requirements" 
+                  rows={5}
+                  value={requirements}
+                  onChange={e => setRequirements(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="List the skills, experience, and requirements..." 
+                  required 
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-4 pt-4 border-t">

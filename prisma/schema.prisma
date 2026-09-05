@@ -56,6 +56,8 @@ model Job {
   companyId     String
   company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   applications  Application[]
+
+  @@index([companyId])
 }
 
 model Candidate {
@@ -70,6 +72,8 @@ model Candidate {
 
   resumes       Resume[]
   applications  Application[]
+
+  @@index([userId])
 }
 
 model Resume {
@@ -78,11 +82,13 @@ model Resume {
   candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   fileUrl       String
   fileName      String
-  parsedData    String?     // Stores OpenAI parsed structured data as stringified JSON
+  parsedData    Json?       // Stores OpenAI parsed structured data
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   applications  Application[]
+
+  @@index([candidateId])
 }
 
 model Application {
@@ -96,10 +102,15 @@ model Application {
   
   status        String    @default("PENDING") // PENDING, REVIEWING, INTERVIEW, REJECTED, HIRED
   matchScore    Float?    // AI Match score
+  matchData     Json?     // Detailed match breakdown
+  aiSummary     Json?     // AI Recruiter summary
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   interviews    Interview[]
+
+  @@index([jobId])
+  @@index([candidateId])
 }
 
 model Interview {
@@ -110,6 +121,8 @@ model Interview {
   score         Float?
   feedback      String?
   transcript    String?
+  aiQuestions   Json?     // Generated interview questions
+  aiFeedback    Json?     // Structured AI feedback
   scheduledAt   DateTime
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

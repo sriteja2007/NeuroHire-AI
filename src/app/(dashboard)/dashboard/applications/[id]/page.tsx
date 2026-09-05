@@ -5,9 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, FileText, Calendar, Briefcase, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, Mail, FileText, Calendar, Briefcase, CheckCircle2, XCircle, Clock, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { ApplicationActions } from "./components/application-actions";
+import { AiAnalysisButton } from "./components/ai-analysis-button";
+import { InterviewAiPanel } from "./components/interview-ai-panel";
+import { EmailGenerator } from "./components/email-generator";
 
 export default async function ApplicationDetailsPage({ params }: { params: { id: string } }) {
   const session = await auth();
@@ -71,6 +74,7 @@ export default async function ApplicationDetailsPage({ params }: { params: { id:
           }>
             {application.status}
           </Badge>
+          <EmailGenerator applicationId={application.id} />
           <ApplicationActions applicationId={application.id} currentStatus={application.status} />
         </div>
       </div>
@@ -100,22 +104,84 @@ export default async function ApplicationDetailsPage({ params }: { params: { id:
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">AI Match Score</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                AI Recruiter Insights
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl">
-                {application.matchScore ? (
-                  <>
-                    <span className="text-5xl font-black text-primary">{application.matchScore}%</span>
-                    <span className="text-sm text-muted-foreground mt-2">Recommended match</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-lg font-medium text-muted-foreground">Not evaluated</span>
-                    <Button variant="outline" size="sm" className="mt-4">Run AI Analysis</Button>
-                  </>
-                )}
-              </div>
+              {application.matchScore !== null && application.matchData && application.aiSummary ? (
+                <div className="space-y-6">
+                  <div className="flex flex-col items-center justify-center p-6 border-2 border-primary/20 bg-primary/5 rounded-xl">
+                    <span className="text-6xl font-black text-primary">{application.matchScore}%</span>
+                    <span className="text-sm font-medium mt-2">Overall Match</span>
+                  </div>
+                  
+                  {/* Detailed Scores */}
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-2xl font-bold">{(application.matchData as any).skillMatchScore}%</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Skills</p>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-2xl font-bold">{(application.matchData as any).experienceMatchScore}%</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Experience</p>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div>
+                    <h3 className="font-semibold mb-2">Candidate Summary</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {(application.aiSummary as any).candidateSummary}
+                    </p>
+                  </div>
+
+                  {/* Strengths & Weaknesses */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-600 mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" /> Top Strengths
+                      </h3>
+                      <ul className="text-sm text-muted-foreground space-y-1 pl-6 list-disc">
+                        {((application.matchData as any).strengths || []).map((s: string, i: number) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    {((application.matchData as any).missingSkills || []).length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-red-500 mb-2 flex items-center gap-2">
+                          <XCircle className="h-4 w-4" /> Missing Skills
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {((application.matchData as any).missingSkills || []).map((s: string, i: number) => (
+                            <Badge key={i} variant="destructive" className="bg-red-500/10 text-red-600 border-0">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recommendation */}
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">AI Recommendation</h3>
+                    <Badge className="text-sm py-1" variant={(application.aiSummary as any).hiringRecommendation === "STRONG_YES" ? "default" : "secondary"}>
+                      {(application.aiSummary as any).hiringRecommendation?.replace("_", " ")}
+                    </Badge>
+                  </div>
+                  
+                  <AiAnalysisButton applicationId={application.id} />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl text-center">
+                  <Sparkles className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
+                  <p className="text-muted-foreground font-medium">Not evaluated yet</p>
+                  <p className="text-xs text-muted-foreground mt-1 mb-4">Run AI Analysis to score this candidate against the job description.</p>
+                  <AiAnalysisButton applicationId={application.id} />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -169,39 +235,7 @@ export default async function ApplicationDetailsPage({ params }: { params: { id:
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Interview Schedule</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {application.interviews.length > 0 ? (
-                <div className="space-y-4">
-                  {application.interviews.map(interview => (
-                    <div key={interview.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-primary/10 p-3 rounded-lg text-primary">
-                          <Calendar className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Technical Interview</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(interview.scheduledAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline">{interview.status}</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground font-medium">No interviews scheduled yet</p>
-                  <Button variant="outline" className="mt-4">Schedule Interview</Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <InterviewAiPanel applicationId={application.id} interviews={application.interviews} />
 
           <Card>
             <CardHeader>

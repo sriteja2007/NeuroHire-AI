@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse");
+import { parseResumeText } from "@/lib/ai/resume-parser";
 
 export async function uploadResume(formData: FormData) {
   const session = await auth();
@@ -34,6 +37,27 @@ export async function uploadResume(formData: FormData) {
     throw new Error("Only PDF and DOCX files are supported");
   }
 
+  // Extract text from PDF
+  let text = "";
+  if (file.type === "application/pdf") {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const pdfData = await pdfParse(buffer);
+    text = pdfData.text;
+  } else {
+    // Basic fallback for non-PDF, could implement docx parsing later
+    text = await file.text();
+  }
+
+  // Parse with OpenAI
+  let parsedData = null;
+  if (text.trim()) {
+    try {
+      parsedData = await parseResumeText(text);
+    } catch (e) {
+      console.error("Failed to parse resume with AI:", e);
+    }
+  }
+
   // Simulate file upload (in a real app, upload to S3/Cloudinary and get URL)
   const fileUrl = `/uploads/${file.name}`;
   
@@ -43,7 +67,7 @@ export async function uploadResume(formData: FormData) {
       candidateId: candidate.id,
       fileName: file.name,
       fileUrl: fileUrl,
-      parsedData: "{}" // Simulated parsing
+      parsedData: parsedData as any
     }
   });
 

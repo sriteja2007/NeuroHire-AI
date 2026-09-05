@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Briefcase, Calendar, TrendingUp } from "lucide-react";
+import { Users, Briefcase, Calendar, TrendingUp, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -7,6 +7,7 @@ import { DashboardChart } from "./components/dashboard-chart";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { getDashboardAiInsights } from "@/app/actions/dashboard-ai";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -33,7 +34,8 @@ export default async function DashboardPage() {
     applications,
     interviews,
     avgScoreResult,
-    recentApplications
+    recentApplications,
+    aiInsights
   ] = await Promise.all([
     prisma.job.count({ where: { companyId: companyId } }),
     prisma.job.count({ where: { companyId: companyId, isActive: true } }),
@@ -52,7 +54,8 @@ export default async function DashboardPage() {
         candidate: { include: { user: true } },
         job: true
       }
-    })
+    }),
+    getDashboardAiInsights()
   ]);
 
   const avgMatchScore = avgScoreResult._avg.matchScore 
@@ -67,6 +70,19 @@ export default async function DashboardPage() {
           Here&apos;s a summary of your hiring pipeline.
         </p>
       </div>
+
+      {aiInsights && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-primary">
+              <Sparkles className="h-5 w-5" /> AI Pipeline Insights
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm font-medium leading-relaxed">{aiInsights}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
