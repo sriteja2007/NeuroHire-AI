@@ -8,6 +8,34 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { getDashboardAiInsights } from "@/app/actions/dashboard-ai";
+import { unstable_cache } from "next/cache";
+
+const getCachedMetrics = unstable_cache(
+  async (companyId: string) => {
+    return Promise.all([
+      prisma.job.count({ where: { companyId: companyId } }),
+      prisma.job.count({ where: { companyId: companyId, isActive: true } }),
+      prisma.candidate.count({ where: { applications: { some: { job: { companyId: companyId } } } } }),
+      prisma.application.count({ where: { job: { companyId: companyId } } }),
+      prisma.interview.count({ where: { application: { job: { companyId: companyId } }, status: "SCHEDULED" } }),
+      prisma.application.aggregate({
+        where: { job: { companyId: companyId }, matchScore: { not: null } },
+        _avg: { matchScore: true }
+      }),
+      prisma.application.findMany({
+        where: { job: { companyId: companyId } },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          candidate: { include: { user: true } },
+          job: true
+        }
+      }),
+    ]);
+  },
+  ["dashboard-metrics"],
+  { revalidate: 60, tags: ["dashboard"] }
+);
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,29 +62,10 @@ export default async function DashboardPage() {
     applications,
     interviews,
     avgScoreResult,
-    recentApplications,
-    aiInsights
-  ] = await Promise.all([
-    prisma.job.count({ where: { companyId: companyId } }),
-    prisma.job.count({ where: { companyId: companyId, isActive: true } }),
-    prisma.candidate.count({ where: { applications: { some: { job: { companyId: companyId } } } } }),
-    prisma.application.count({ where: { job: { companyId: companyId } } }),
-    prisma.interview.count({ where: { application: { job: { companyId: companyId } }, status: "SCHEDULED" } }),
-    prisma.application.aggregate({
-      where: { job: { companyId: companyId }, matchScore: { not: null } },
-      _avg: { matchScore: true }
-    }),
-    prisma.application.findMany({
-      where: { job: { companyId: companyId } },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      include: {
-        candidate: { include: { user: true } },
-        job: true
-      }
-    }),
-    getDashboardAiInsights()
-  ]);
+    recentApplications
+  ] = await getCachedMetrics(companyId);
+
+  const aiInsights = await getDashboardAiInsights();
 
   const avgMatchScore = avgScoreResult._avg.matchScore 
     ? Math.round(avgScoreResult._avg.matchScore) 

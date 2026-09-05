@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
@@ -175,4 +176,17 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String?
+  action    String
+  ipAddress String
+  metadata  String?  // JSON stringified
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([userId])
 }
